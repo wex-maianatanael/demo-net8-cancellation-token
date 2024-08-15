@@ -16,25 +16,32 @@ namespace Demo.Repository
 
         public async Task<object> GetUserByIdAsync(int id, CancellationToken cancellationToken)
         {
-            if (cancellationToken.IsCancellationRequested)
+            try
             {
-                _logger.LogInformation("The request was canceled.");
-                return null;
+                if (cancellationToken.IsCancellationRequested)
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                return await Task.Run(() =>
+                {
+                    Thread.Sleep(2000);
+
+                    var currentYear = DateTime.Now.Year;
+                    var randomNumber = new Random();
+                    var birthYear = randomNumber.Next(1950, DateTime.Now.Year - 1);
+
+                    var firstName = GetRandomFirstName();
+                    var middleName = GetRandomMiddleName();
+
+                    return new { Id = id, Name = string.Join(" ", firstName, middleName), BirthDate = birthYear, Age = DateTime.Now.Year - birthYear };
+                });
             }
-
-            return await Task.Run(() =>
+            catch (OperationCanceledException)
             {
-                Thread.Sleep(2000);
+                var className = GetType().Name;
+                _logger.LogInformation("{ClassName} | Operation was canceled - Repository method not executed.", className);
 
-                var currentYear = DateTime.Now.Year;
-                var randomNumber = new Random();
-                var birthYear = randomNumber.Next(1950, DateTime.Now.Year - 1);
-
-                var firstName = GetRandomFirstName();
-                var middleName = GetRandomMiddleName();
-
-                return new { Id = id, Name = string.Join(" ", firstName, middleName), BirthDate = birthYear, Age = DateTime.Now.Year - birthYear };
-            });
+                throw;
+            }
         }
 
         private string GetRandomFirstName()

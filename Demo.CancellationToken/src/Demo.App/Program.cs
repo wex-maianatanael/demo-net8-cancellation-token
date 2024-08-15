@@ -51,13 +51,26 @@ for (int i = 1; i < 11; i++)
 
     var randomNumber = new Random();
     if (i == randomNumber.Next(i, 10))
+    {
+        logger.LogWarning("Cancellation token requested at iteration {Idx}", i);
         cancellationTokenSource2.Cancel();
+    }
 
-    var user = await appService.GetUserByIdAsync(i, cancellationToken2);
-    Console.WriteLine(user);
+    try
+    {
+        var userData = await appService.GetUserByIdAsync(i, cancellationToken2);
+        Console.WriteLine(userData);
 
-    if (!cancellationTokenSource2.IsCancellationRequested) // comment this line to see the unexpected behavior
+        // it's not gonna be executed because the repository method is throwing a OperationCanceledException that's being caught in the catch block below
         Console.WriteLine("---> processing the logic that comes after the cancellation token propagation...");
+    }
+    catch (OperationCanceledException)
+    {
+        string className = typeof(Program).Name;
+        logger.LogInformation("{ClassName} | Operation canceled - additional logic not executed.", className);
+    }
+
+    cancellationTokenSource2.Dispose();
 }
 
 #endregion
